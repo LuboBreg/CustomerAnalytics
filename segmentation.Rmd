@@ -1,0 +1,186 @@
+---
+title: "Segmentation SESSION UCU summer school"
+author: "Liubomyr Bregman"
+date: "23 July 2018"
+output: html_document
+---
+
+
+
+
+#Load
+```{r input, echo=FALSE}
+#, eval=FALSE}
+library(readr)
+setwd("C:/Users/lbregman001/Desktop/DS_school2018") 
+input_data <- read_delim('Segmentation_test.csv',
+  #"C:/Users/lbregman001/Desktop/Segmentaion/04 Data/Clustered_data_2504_Final_upd.csv",
+    "|",
+     escape_double = FALSE,
+     trim_ws = TRUE)
+
+write_csv(input_data,'input_data.csv')
+cleaned_data <- na.omit(data.frame(input_data))
+cleaned_data$Cluster <- NULL
+cleaned_data$Merged_cluster <- NULL
+cleaned_data$outlier <- NULL
+
+str(cleaned_data)
+
+
+```
+
+  
+#Normalization  
+```{r data normalization}
+
+#Z-score Norlalizations
+normalized_data <-cleaned_data 
+
+for(col in  4:(ncol(normalized_data))){
+   normalized_data[, col] <- 
+     (normalized_data[, col] - mean(normalized_data[, col]))/sd(normalized_data[, col])
+}
+
+
+
+#OR
+
+
+#Min-max
+for(col in  4:(ncol(normalized_data))){
+   normalized_data[, col] <- 
+     (normalized_data[, col])/max(normalized_data[, col])
+}
+
+
+
+    
+summary(normalized_data)
+
+```
+
+```{r features}
+
+library(corrplot)
+
+
+clust_data<-normalized_data[,4:(ncol(normalized_data)-1)]
+  c <-cor(clust_data)
+  corrplot(c)
+  
+
+```
+
+
+#Select number of clusters
+
+```{r Number of clusters Additional}
+
+
+library(factoextra)
+
+
+clust_data<-normalized_data[,4:ncol(normalized_data)]
+
+#1. Average within-cluster sum of squares
+  fviz_nbclust(clust_data, kmeans, method = "wss" )
+
+
+#2. Gap statistics
+  fviz_nbclust(clust_data, kmeans, method = "gap_stat")
+
+
+#3. Average Silhouette distance 
+  fviz_nbclust(clust_data, kmeans, method = "silhouette")
+
+
+```
+
+
+```{r k-means}
+
+library(factoextra)
+
+
+df <- cleaned_data[,4:(ncol(cleaned_data)-1)]
+set.seed(123)
+
+
+km.res <- kmeans(df, 4, nstart = 10)
+
+fviz_cluster(km.res, df, ellipse = TRUE, geom = "point")
+
+
+```
+
+
+
+
+#DB SCAN
+
+```{r dbscan elips size  }
+
+library(dbscan)
+
+df <- normalized_data[,4:(ncol(cleaned_data)-1)]
+
+df <-as.matrix(df)
+kNNdist(df, k=3, search="kd")
+kNNdistplot(df, k=3)
+
+cl <- dbscan(df, eps = 2, MinPts = 4)
+
+(pairs(df, col = cl$cluster+1L))
+
+## Note: black are noise points/ anomalies
+```
+
+
+
+
+```{r from fuzzy clustering}
+
+
+library(factoextra)
+library(cluster)
+
+#Select the features out of Clusters data frame which should be clustered
+df<-normalized_data[5:(ncol(normalized_data))]
+
+#Fuzzy Analysis Clustering into 2 clusters
+res.fanny <- fanny(df, 2)  
+
+#Similarity visualizing the centroids in 2 first dimentions 
+fviz_cluster(res.fanny, ellipse.type = "norm", repel = TRUE,
+             palette = "jco", ggtheme = theme_minimal(),
+             legend = "right")
+
+
+
+```
+
+
+
+```{r hierarcical clustering}
+library(dplyr)
+# Compute hierarchical clustering
+
+df<-normalized_data[5:(ncol(normalized_data))]
+
+
+res.hc <- df %>%
+  scale() %>%                    # Scale the data
+  dist(method = "euclidean") %>% # Compute dissimilarity matrix
+  hclust(method = "ward.D2")     # Compute hierachical clustering
+# Visualize using factoextra
+# Cut in 4 groups and color by groups
+fviz_dend(res.hc, k = 4, # Cut in four groups
+          cex = 0.5, # label size
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, # color labels by groups
+          rect = TRUE # Add rectangle around groups
+          )
+
+```
+
