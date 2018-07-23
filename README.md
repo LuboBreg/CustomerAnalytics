@@ -14,4 +14,5 @@ R, SQL, PowerBI.
 Prerequisites
 Understanding of basic concepts of supervised / unsupervised learning.
 
-The course is tought by Liubo Bregman & Adam Blascik
+The course is tought by Liubo Bregman & Adam Blascik. Special thanks to Richard Bobek for condribution to the course. 
+
