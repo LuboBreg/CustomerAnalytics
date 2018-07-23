@@ -12,18 +12,13 @@ output: html_document
 ```{r input, echo=FALSE}
 #, eval=FALSE}
 library(readr)
-setwd("C:/Users/lbregman001/Desktop/DS_school2018") 
-input_data <- read_delim('Segmentation_test.csv',
-  #"C:/Users/lbregman001/Desktop/Segmentaion/04 Data/Clustered_data_2504_Final_upd.csv",
+
+input_data <- read_delim('segm_input2.csv',
     "|",
      escape_double = FALSE,
      trim_ws = TRUE)
 
-write_csv(input_data,'input_data.csv')
-cleaned_data <- na.omit(data.frame(input_data))
-cleaned_data$Cluster <- NULL
-cleaned_data$Merged_cluster <- NULL
-cleaned_data$outlier <- NULL
+cleaned_data <- na.omit(as.data.frame(input_data))
 
 str(cleaned_data)
 
@@ -43,6 +38,8 @@ for(col in  4:(ncol(normalized_data))){
 }
 
 
+summary(normalized_data)
+
 
 #OR
 
@@ -55,10 +52,12 @@ for(col in  4:(ncol(normalized_data))){
 
 
 
-    
 summary(normalized_data)
 
 ```
+
+
+
 
 ```{r features}
 
@@ -129,7 +128,7 @@ df <-as.matrix(df)
 kNNdist(df, k=3, search="kd")
 kNNdistplot(df, k=3)
 
-cl <- dbscan(df, eps = 2, MinPts = 4)
+cl <- dbscan(df, eps = 0.5, MinPts = 4)
 
 (pairs(df, col = cl$cluster+1L))
 
