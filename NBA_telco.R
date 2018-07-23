@@ -1,4 +1,4 @@
-### Viva la multiclass classification
+### multiclass classification for next best action
 
 library(tidyverse)
 library(readr)
@@ -14,7 +14,7 @@ library(ggplot2)
 library(ggthemes)
 library(dummies)
 library(RODBC)
-library(tidyR)
+library(tidyr)
 library(reshape2)
 library(randomForest)
 
@@ -242,7 +242,7 @@ cat('\n', paste("Postpaid model training took", round(time.taken, 1), units(time
 print(fit_multi)
 
 #save trained model . Each model is saved with its time stamp. It takes some time :(
-file_post = paste0("trained_models_postpaid/", "tree_postpaid_", format(Sys.time(), "%d_%m_%y_%H_%M"), ".rda")
+file_post = paste0("trained_models/", "tree_postpaid_", format(Sys.time(), "%d_%m_%y_%H_%M"), ".rda")
 save(fit_multi, file = file_post)
 
 # load saved model. Either the same that was just saved with commaned load(file), or arbitrary one with custom path.
