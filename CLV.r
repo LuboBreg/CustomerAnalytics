@@ -47,16 +47,21 @@ cac <- data.frame(ID_user=unique(df$ID_user), cac=sample(c(100:4000), length(uni
                          
 
 
+
+today <- as.Date(max(df$date), format='%Y-%m-%d')
+discount_rate <- (1.05)^(1/365) -1
+
+
 # creating data frames with CLV
 df$grossmarg <- 0.2*df$price
 
 clv <- df %>%
   group_by(ID_user) %>%
-  summarise(clv=sum(grossmarg)) %>%
+  summarise(clv=sum(grossmarg/((1 + discount_rate)^as.numeric(today - df$date)))) %>%
   ungroup()
 
 # reporting date
-today <- as.Date(max(df$date), format='%Y-%m-%d')
+
 
 
 # processing data
