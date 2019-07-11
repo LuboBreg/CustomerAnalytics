@@ -9,7 +9,7 @@ Course topics
 Marketing, ML, Customer Analytics.
 
 Course tools
-R, SQL, PowerBI.
+R
 
 Prerequisites
 Understanding of basic concepts of supervised / unsupervised learning.
