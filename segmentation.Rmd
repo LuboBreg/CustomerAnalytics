@@ -1,34 +1,39 @@
 ---
 title: "Segmentation SESSION UCU summer school"
 author: "Liubomyr Bregman"
-date: "23 July 2018"
+date: "25 July 2019"
 output: html_document
 ---
 
+###libraries
+library(httr)
+library(readr)
+library(corrplot)
+library(rpart.plot)
+library(rpart)
+library(randomForest)
+library(factoextra)
+library(cluster)
 
 
 
-#Load
+
+#Load thr data
 ```{r input, echo=FALSE}
 #, eval=FALSE}
+library(httr)
 library(readr)
-
-input_data <- read_delim('segm_input2.csv',
+input_data <- read_delim('segm_input.csv',
     "|",
      escape_double = FALSE,
      trim_ws = TRUE)
-
 cleaned_data <- na.omit(as.data.frame(input_data))
-
 str(cleaned_data)
-
-
 ```
 
   
 #Normalization  
 ```{r data normalization}
-
 #Z-score Norlalizations
 normalized_data <-cleaned_data 
 
@@ -36,80 +41,57 @@ for(col in  4:(ncol(normalized_data))){
    normalized_data[, col] <- 
      (normalized_data[, col] - mean(normalized_data[, col]))/sd(normalized_data[, col])
 }
-
-
 summary(normalized_data)
-
-
 #OR
-
-
 #Min-max
 for(col in  4:(ncol(normalized_data))){
    normalized_data[, col] <- 
      (normalized_data[, col])/max(normalized_data[, col])
 }
-
-
-
 summary(normalized_data)
-
 ```
 
 
-
+#How to select features?
 
 ```{r features}
-
 library(corrplot)
-
-
 clust_data<-normalized_data[,4:(ncol(normalized_data)-1)]
   c <-cor(clust_data)
   corrplot(c)
-  
-
 ```
+
+## And a bit smarter way to select features
+
+```{r feature selection }
+library(randomForest)
+#Feature selection for unsupervized learnig does not much differ from supervized, but you need to see target
+rf <- randomForest(as.formula("TOTAL_TURNOVER ~TOTAL_SAVING+SAVING_RATIO+STDDEV_MONTHLY+STABLE_INCOME+DORMACY_MONTHS+CASH_IN_RATIO+CASH_OUT_RATIO+WIRE_IN_RATIO+WIRE_OUT_RATIO"), cleaned_data, ntree = 20)
+varImpPlot(rf)
+```
+
 
 
 #Select number of clusters
-
 ```{r Number of clusters Additional}
-
-
 library(factoextra)
-
-
 clust_data<-normalized_data[,4:ncol(normalized_data)]
-
 #1. Average within-cluster sum of squares
-  fviz_nbclust(clust_data, kmeans, method = "wss" )
-
-
+  fviz_nbclust(clust_data, kmeans, method = "wss", k.max =20 )
 #2. Gap statistics
-  fviz_nbclust(clust_data, kmeans, method = "gap_stat")
-
-
+  fviz_nbclust(clust_data, kmeans, method = "gap_stat", k.max = 20)
 #3. Average Silhouette distance 
-  fviz_nbclust(clust_data, kmeans, method = "silhouette")
-
-
+  fviz_nbclust(clust_data, kmeans, method = "silhouette", k.max = 20)
 ```
 
-
+#Kmeans
 ```{r k-means}
-
-library(factoextra)
-
-
-df <- cleaned_data[,4:(ncol(cleaned_data)-1)]
 set.seed(123)
-
-
-km.res <- kmeans(df, 4, nstart = 10)
-
+library(factoextra)
+df <- cleaned_data[,4:(ncol(cleaned_data)-1)]
+km.res <- kmeans(df, 17, nstart = 10)
 fviz_cluster(km.res, df, ellipse = TRUE, geom = "point")
-
+qplot(km.res$cluster)
 
 ```
 
@@ -117,64 +99,55 @@ fviz_cluster(km.res, df, ellipse = TRUE, geom = "point")
 
 
 #DB SCAN
-
 ```{r dbscan elips size  }
-
 library(dbscan)
-
+#Data preparation
 df <- normalized_data[,4:(ncol(cleaned_data)-1)]
-
 df <-as.matrix(df)
 kNNdist(df, k=3, search="kd")
 kNNdistplot(df, k=3)
-
-cl <- dbscan(df, eps = 0.5, MinPts = 4)
-
+cl <- dbscan(df, eps = 1, MinPts = 3)
 (pairs(df, col = cl$cluster+1L))
-
+qplot(cl$cluster)
 ## Note: black are noise points/ anomalies
 ```
 
 
 
-
+#c-means. Fuzzy clustering
 ```{r from fuzzy clustering}
-
-
 library(factoextra)
 library(cluster)
-
 #Select the features out of Clusters data frame which should be clustered
 df<-normalized_data[5:(ncol(normalized_data))]
 
-#Fuzzy Analysis Clustering into 2 clusters
-res.fanny <- fanny(df, 2)  
+#Fuzzy Analysis Clustering into 15 clusters
+res.fanny <- fanny(df, 15)  
 
-#Similarity visualizing the centroids in 2 first dimentions 
+#Similarity visualizing the centroids in 15 first dimentions 
 fviz_cluster(res.fanny, ellipse.type = "norm", repel = TRUE,
              palette = "jco", ggtheme = theme_minimal(),
              legend = "right")
-
-
+qplot(res.fanny$clustering)
 
 ```
 
 
-
+#Hierarchical clustering
 ```{r hierarcical clustering}
 library(dplyr)
 # Compute hierarchical clustering
 
 df<-normalized_data[5:(ncol(normalized_data))]
 
-
 res.hc <- df %>%
   scale() %>%                    # Scale the data
   dist(method = "euclidean") %>% # Compute dissimilarity matrix
   hclust(method = "ward.D2")     # Compute hierachical clustering
+
 # Visualize using factoextra
-# Cut in 4 groups and color by groups
-fviz_dend(res.hc, k = 4, # Cut in four groups
+# Cut in 17 groups and color by groups
+fviz_dend(res.hc, k = 17, # Cut in four groups
           cex = 0.5, # label size
           k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
           color_labels_by_k = TRUE, # color labels by groups
@@ -182,4 +155,47 @@ fviz_dend(res.hc, k = 4, # Cut in four groups
           )
 
 ```
+
+
+
+#Supervized clustering
+```{r supervized segmentation and element of feature selection}
+#Compare clusters
+library(rpart.plot)
+library(rpart)
+
+rpart <- rpart( "TOTAL_TURNOVER ~ TOTAL_SAVING+SAVING_RATIO+STDDEV_MONTHLY+STABLE_INCOME+DORMACY_MONTHS+CASH_IN_RATIO+CASH_OUT_RATIO+WIRE_IN_RATIO+WIRE_OUT_RATIO", cleaned_data
+ )
+
+rpart.plot(rpart)
+```
+
+
+
+#Describer segments? Simpliest explainability is Desicion tree
+```{r describe segments}
+
+library(rpart.plot)
+library(rpart)
+
+cleaned_data$cluster <- km.res$cluster
+
+rpart <- rpart( "cluster ~ TOTAL_TURNOVER+ TOTAL_IN + TOTAL_IN_CT + TOTAL_OUT + TOTAL_OUT_CT+TOTAL_SAVING+SAVING_RATIO+STDDEV_MONTHLY+STABLE_INCOME+DORMACY_MONTHS+CASH_IN_RATIO+CASH_OUT_RATIO+WIRE_IN_RATIO+WIRE_OUT_RATIO", cleaned_data
+ )
+rpart.plot(rpart)
+
+```
+
+#Compare the clusters
+```{r compare clusters}
+#Compare clusters
+clusters <- data.frame(
+  cl$cluster,
+  km.res$cluster,
+  res.fanny$clustering
+)
+View(table(clusters))
+```
+
+
 
